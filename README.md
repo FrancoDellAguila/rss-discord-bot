@@ -24,9 +24,6 @@ Bot de Discord que permite suscribirse a feeds RSS desde canales.
 
 ## Ejecutar
 
-- Ejecutar solo la API (opcional):
-  - .\.venv\Scripts\python -m uvicorn api:app --reload --port 8000
-
 - Ejecutar el bot (incluye poller que notificará a los canales suscritos):
   - .\.venv\Scripts\python bot.py
 
