@@ -70,7 +70,7 @@ async def recent(ctx, feed_url: str, count: int = 1):
         await ctx.send("El número debe ser mayor que 0.")
         return
 
-    MAX_PER_REQUEST = 10
+    MAX_PER_REQUEST = 5
     if n > MAX_PER_REQUEST:
         await ctx.send(f"Máximo permitido: {MAX_PER_REQUEST}. Enviando {MAX_PER_REQUEST} ítems.")
         n = MAX_PER_REQUEST
