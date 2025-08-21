@@ -60,7 +60,6 @@ async def list_cmd(ctx):
 
 @bot.command(name="recent")
 async def recent(ctx, feed_url: str, count: int = 1):
-    """!recent <feed_url> <count> — envía los últimos `count` ítems del feed al canal."""
     try:
         n = int(count)
     except Exception:
@@ -70,46 +69,23 @@ async def recent(ctx, feed_url: str, count: int = 1):
         await ctx.send("El número debe ser mayor que 0.")
         return
 
-    MAX_PER_REQUEST = 5
+    MAX_PER_REQUEST = 15
     if n > MAX_PER_REQUEST:
         await ctx.send(f"Máximo permitido: {MAX_PER_REQUEST}. Enviando {MAX_PER_REQUEST} ítems.")
         n = MAX_PER_REQUEST
 
-    # intentar usar el "typing" context manager compatible con varias versiones
-    typing_cm = None
-    if hasattr(ctx, "typing"):
-        typing_cm = ctx.typing()
-    elif getattr(ctx, "channel", None) and hasattr(ctx.channel, "typing"):
-        typing_cm = ctx.channel.typing()
+    loop = asyncio.get_event_loop()
+    parsed = await loop.run_in_executor(None, feedparser.parse, feed_url)
+    entries = parsed.entries or []
+    if not entries:
+        await ctx.send("No se encontraron entradas en ese feed.")
+        return
 
-    async def fetch_and_send():
-        loop = asyncio.get_event_loop()
-        parsed = await loop.run_in_executor(None, feedparser.parse, feed_url)
-        entries = parsed.entries
-        if not entries:
-            await ctx.send("No se encontraron entradas en ese feed o la URL es inválida.")
-            return
-
-        to_send = entries[:n]  # feedparser suele devolver newest->oldest
-        for entry in reversed(to_send):  # enviar más antiguo primero dentro del lote
-            title = entry.get("title", "(sin título)")
-            link = entry.get("link", "")
-            published = entry.get("published", "")
-            text = f"**{title}**\n{published}\n{link}"
-            try:
-                await ctx.send(text)
-            except Exception:
-                pass
-
-    if typing_cm:
-        try:
-            async with typing_cm:
-                await fetch_and_send()
-        except Exception:
-            # en caso de fallo dentro del typing, intentar enviar sin typing
-            await fetch_and_send()
-    else:
-        await fetch_and_send()
+    to_send = entries[:n]  # newest->oldest
+    for entry in reversed(to_send):  # enviar más antiguo primero dentro del lote
+        title = entry.get("title", "(sin título)")
+        link = entry.get("link", "")
+        await ctx.send(f"**{title}**\n{link}")
 
 if __name__ == "__main__":
     bot.run(TOKEN)
